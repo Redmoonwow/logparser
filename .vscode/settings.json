@@ -1,0 +1,8 @@
+{
+    "editor.fontFamily": "HackGenNerd",
+    "editor.renderWhitespace": "all",
+    "editor.insertSpaces": false,
+	"editor.detectIndentation": false,
+	"files.eol": "\n",
+	"editor.renderLineHighlight": "gutter",
+}
