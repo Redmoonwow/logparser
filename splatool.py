@@ -255,7 +255,7 @@ def func_LogLine(message_dict):
 				return
 			else:
 				ok = 1
-			#print(message_dict["rawLine"])
+			#print(str(message_dict["rawLine"]).replace("\n",""))
 			PT_array.loc[PT_array["ID"] == linedata[2],"x"] = linedata[11]
 			PT_array.loc[PT_array["ID"] == linedata[2],"y"] = linedata[12]
 			PT_array.loc[PT_array["ID"] == linedata[2],"z"] = linedata[13]
@@ -265,7 +265,7 @@ def func_LogLine(message_dict):
 				return
 			else:
 				ok = 1
-			#print(message_dict["rawLine"])
+			#print(str(message_dict["rawLine"]).replace("\n",""))
 			PT_array.loc[PT_array["ID"] == linedata[2],"x"] = linedata[10]
 			PT_array.loc[PT_array["ID"] == linedata[2],"y"] = linedata[11]
 			PT_array.loc[PT_array["ID"] == linedata[2],"z"] = linedata[12]

@@ -24,6 +24,8 @@ def calc_2point_pos(center_x,center_y,a_x,a_y,b_x,b_y):
 	cross=np.cross(vec1,vec2)
 	cos_theta=inner/(absvec1*absvec2)
 	theta=math.degrees(math.acos(cos_theta))
+	if 0 > cross:
+		theta = -1 * theta
 	return float(round(theta,2))
 
 """

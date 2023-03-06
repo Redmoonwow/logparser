@@ -22,7 +22,23 @@ SIGMA_OMEGA_M_POS = {
 	"y":		[80.00,85.86,100.00,114.14,120.00,114.14,100.00,85.86]
 }
 
+SIGMA_OMEGA_M_POS_MARKERS = {
+	"A":["AC","BD","1","3","4","2"],
+	"1":["13","24","B","D","A","C"],
+	"B":["BD","AC","2","4","1","3"],
+	"2":["24","13","C","A","B","D"],
+	"C":["AC","BD","3","1","2","4"],
+	"3":["13","24","D","B","C","A"],
+	"D":["BD","AC","4","2","3","1"],
+	"4":["24","13","A","C","D","B"]
+}
 
+PLAYSTATION_PRIO = {
+	"Circle":0,
+	"Cross":1,
+	"Triangle":2,
+	"square":3
+}
 
 
 class top_p5:
@@ -39,15 +55,19 @@ class top_p5:
 
 	sigma_omegaM_marker_pos = ""
 	fg_sigma_once = False
+	my_marker = ""
 
 	def __init__(self):
 		self.__PT_Data = pandas.DataFrame()
 		self.__SIGMA_OMEGA_M_POS = pandas.DataFrame(SIGMA_OMEGA_M_POS)
 		self.__PT_Data["Dynamis"] = 0
 		self.__PT_Data["1BMARKER"] = 0
+		self.__PT_Data["1BMARKER_prio"] = 0
 		self.__PT_Data["PlayStation_ID"] = ""
 		self.__PT_Data["PlayStation"] = ""
+		self.__PT_Data["PlayStation_prio"] = ""
 		self.__PT_Data["PlayStation_deg"] = ""
+		self.__PT_Data["PlayStation_LR"] = ""
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
 		self.world_cnt = 0
@@ -58,7 +78,8 @@ class top_p5:
 		self.state_omega = 0
 		self.fg_sigma_once = False
 		self.playstation_cnt = 0
-		tmp_cnt = 0
+		self.tmp_cnt = 0
+		self.my_marker = ""
 		return
 	
 	def update_df(self, PT_array):
@@ -68,13 +89,17 @@ class top_p5:
 		self.__PT_Data = PT_array.copy()
 		self.__PT_Data["Dynamis"] = 0
 		self.__PT_Data["1BMARKER"] = 0
+		self.__PT_Data["1BMARKER_prio"] = 0
 		self.__PT_Data["PlayStation_ID"] = ""
 		self.__PT_Data["PlayStation"] = ""
+		self.__PT_Data["PlayStation_prio"] = ""
 		self.__PT_Data["PlayStation_deg"] = ""
+		self.__PT_Data["PlayStation_LR"] = ""
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
-		tmp_cnt = 0
+		self.tmp_cnt = 0
 		self.is_start = True
+		self.my_marker = ""
 		return
 	
 	def init(self):
@@ -82,9 +107,12 @@ class top_p5:
 		self.__PT_Data = pandas.DataFrame()
 		self.__PT_Data["Dynamis"] = 0
 		self.__PT_Data["1BMARKER"] = 0
+		self.__PT_Data["1BMARKER_prio"] = 0
 		self.__PT_Data["PlayStation_ID"] = ""
 		self.__PT_Data["PlayStation"] = ""
+		self.__PT_Data["PlayStation_prio"] = ""
 		self.__PT_Data["PlayStation_deg"] = ""
+		self.__PT_Data["PlayStation_LR"] = ""
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
 		self.world_cnt = 0
@@ -95,14 +123,18 @@ class top_p5:
 		self.state_omega = 0
 		self.fg_sigma_once = False
 		self.playstation_cnt = 0
-		tmp_cnt = 0
+		self.tmp_cnt = 0
+		self.my_marker = ""
 		return
 	
 	def interval_init(self):
 		self.__PT_Data["1BMARKER"] = 0
+		self.__PT_Data["1BMARKER_prio"] = 0
 		self.__PT_Data["PlayStation_ID"] = ""
 		self.__PT_Data["PlayStation"] = ""
-		self.__PT_Data["PlayStation_deg"] = ""
+		self.__PT_Data["PlayStation_prio"] = ""
+		self.__PT_Data["PlayStation_deg"] = 0
+		self.__PT_Data["PlayStation_LR"] = ""
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
 		self.world_cnt = 0
@@ -110,11 +142,13 @@ class top_p5:
 		self.state_delta = 0
 		self.state_sigma = 0
 		self.state_omega = 0
-		tmp_cnt = 0
+		self.tmp_cnt = 0
 		self.fg_sigma_once = False
+		self.my_marker = ""
 		return
 	
 	def log_chk(self,message_dict):
+		global SIGMA_OMEGA_M_POS_MARKERS
 		#print(str(message_dict["rawLine"]).replace("\n",""))
 		linedata = message_dict["line"]
 		# デュナミスバフ管理
@@ -134,15 +168,19 @@ class top_p5:
 				self.sigma_omegaM_marker_pos = str(omegaM_pos_df["marker"][0])
 
 		if (self.state_sigma == 1): # Display PRIORITY
-			if ("27" == linedata[0]):
-				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[2],"1BMARKER"] = 1
-
+			
 			if(splatool_util.log_chk_get_buff_26(message_dict,"D72")):
 				self.world_cnt += 1
 				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"world"] = "Near"
 			if(splatool_util.log_chk_get_buff_26(message_dict,"D73")):
 				self.world_cnt += 1
 				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"world"] = "Far"
+			if(splatool_util.log_chk_get_buff_26(message_dict,"D63")):
+				self.world_cnt += 1
+				self.__PT_Data.loc[:,"line"] = "Middle"
+			if(splatool_util.log_chk_get_buff_26(message_dict,"D64")):
+				self.world_cnt += 1
+				self.__PT_Data.loc[:,"line"] = "Far"
 
 			if ("27" == linedata[0]):
 				self.playstation_cnt += 1
@@ -160,7 +198,8 @@ class top_p5:
 				self.__PT_Data.loc[5,"PlayStation"] = "Circle"
 				self.__PT_Data.loc[6,"PlayStation"] = "Triangle"
 				self.__PT_Data.loc[7,"PlayStation"] = "Triangle"
-					
+				for index, row in self.__PT_Data.iterrows():
+					self.__PT_Data.loc[index,"PlayStation_prio"] = PLAYSTATION_PRIO[self.__PT_Data["PlayStation"][index]]
 				self.__PT_Data = self.__PT_Data.sort_values("PRIO")
 				self.__PT_Data = self.__PT_Data.reset_index(drop=True)
 
@@ -185,33 +224,89 @@ class top_p5:
 						splatool_util.chatprint("attack is ON!!!!")
 						splatool_util.ExecuteCommand("/mk attack <1>")
 				splatool_util.chatprint("NUMKEY: " + disnumkey)
-				splatool_util.chatprint("------------------------------")
 				self.state_sigma += 1
 		if (self.state_sigma == 2): #座標データから次の動きを推測
 			if ("27" == linedata[0]):
 				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[2],"1BMARKER"] = 1
 				self.tmp_cnt += 1
 
-				if (6 <=  self.tmp_cnt):
+				if (7 <=  self.tmp_cnt):
 					# この時点の座標から左右を確認する
 					sigma_omegaM_pos = self.__SIGMA_OMEGA_M_POS[self.__SIGMA_OMEGA_M_POS["marker"] == self.sigma_omegaM_marker_pos]
 					sigma_omegaM_pos = sigma_omegaM_pos.reset_index(drop=True)
 					sigma_omegaM_pos_x = float(sigma_omegaM_pos["x"][0])
 					sigma_omegaM_pos_y = float(sigma_omegaM_pos["y"][0])
+
+					self.__PT_Data = self.__PT_Data.sort_values("PlayStation_prio")
+					self.__PT_Data = self.__PT_Data.reset_index(drop=True)
+					tmp_rad = 0
+					tmp_pair_1B = 0
+					tmp_pair_chked = False
+					prio_both = 0
+					prio_one_side = 2
 					for index, row in self.__PT_Data.iterrows():
-						self.__PT_Data.loc[index,"PlayStation_deg"] = \
+						rad = \
 							splatool_util.calc_2point_pos(100,100,sigma_omegaM_pos_x,sigma_omegaM_pos_y,float(row["x"]),float(row["y"]))
+						
+						self.__PT_Data.loc[index,"PlayStation_deg"] = rad
+						
+						if ( 0 == tmp_rad):
+							tmp_rad = rad
+						else:
+							if (tmp_rad > rad):
+								self.__PT_Data.loc[index - 1,"PlayStation_LR"] = "RIGHT"
+								self.__PT_Data.loc[index,"PlayStation_LR"] = "LEFT"
+							else:
+								self.__PT_Data.loc[index - 1,"PlayStation_LR"] = "LEFT"
+								self.__PT_Data.loc[index,"PlayStation_LR"] = "RIGHT"
+							tmp_rad = 0
 
+						if ( False == tmp_pair_chked):
+							tmp_pair_1B = self.__PT_Data["1BMARKER"][index]
+							tmp_pair_chked = True
+						else:
+							tmp_pair_1B += self.__PT_Data["1BMARKER"][index]
+							if (tmp_pair_1B >= 2):
+								self.__PT_Data.loc[index - 1,"1BMARKER_prio"] = prio_both
+								self.__PT_Data.loc[index,"1BMARKER_prio"] = prio_both
+								prio_both += 1
+							else:
+								self.__PT_Data.loc[index - 1,"1BMARKER_prio"] = prio_one_side
+								self.__PT_Data.loc[index,"1BMARKER_prio"] = prio_one_side
+								prio_one_side += 1
+							tmp_pair_1B = 0
+							tmp_pair_chked = False
+						
+					# 波動砲立ち位置表示
+					disp_df = self.__PT_Data[self.__PT_Data["MINE"] == 1]
+					disp_df = disp_df.reset_index(drop=False)
+					disp_df = disp_df.iloc[0]
+
+					markers_data = SIGMA_OMEGA_M_POS_MARKERS[self.sigma_omegaM_marker_pos]
+					splatool_util.chatprint("")
+					splatool_util.chatprint("# Wave Cannon Pos")
+					match int(disp_df["1BMARKER_prio"]):
+						case 0:
+							self.my_marker = markers_data[0]
+						case 1:
+							self.my_marker = markers_data[1]
+						case 2:
+							if (0 == disp_df["1BMARKER"]):
+								self.my_marker = markers_data[2]
+							else:
+								self.my_marker = markers_data[3]
+						case 3:
+							if (0 == disp_df["1BMARKER"]):
+								self.my_marker = markers_data[4]
+							else:
+								self.my_marker = markers_data[5]
+
+					splatool_util.chatprint("POS: " + self.my_marker)
+					#### TODO : splatoon 要求
 					self.state_sigma += 1
-
-			# dump 塔の出現パターン
+			if (self.state_sigma == 3):
+				# 塔場所解析
+				a = 1
+			
 		return
 	
-"""
-27|2023-03-01T22:43:11.1030000+09:00|1028540A|Mosin Nagant|0000|0000|0158|0000|0000|0000|676f8fdcb7530cd6
-27|2023-03-01T22:43:11.1030000+09:00|102F254D|Natsuru Yukine|0000|0000|0158|0000|0000|0000|90860d4ddf2f2693
-27|2023-03-01T22:43:11.1030000+09:00|10300FB1|Zera Gloria|0000|0000|0158|0000|0000|0000|25d39c51bd6ac639
-27|2023-03-01T22:43:11.1030000+09:00|102ED585|Ds Oshige|0000|0000|0158|0000|0000|0000|e8fe9da0f325464c
-27|2023-03-01T22:43:11.1030000+09:00|102D563F|Morusun Shiga|0000|0000|0158|0000|0000|0000|370d9dba2f995f1e
-27|2023-03-01T22:43:11.1030000+09:00|1028B6BB|Sawa'i Seven|0000|0000|0158|0000|0000|0000|ad206ade63bdf549
-"""
