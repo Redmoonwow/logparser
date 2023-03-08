@@ -9,10 +9,11 @@ import numpy as np
 
 fg_test = False
 
+# log write 関数
+
 def set_test():
 	global fg_test
 	fg_test = True
-
 
 def calc_2point_pos(center_x,center_y,a_x,a_y,b_x,b_y):
 	#角度計算開始
@@ -28,15 +29,6 @@ def calc_2point_pos(center_x,center_y,a_x,a_y,b_x,b_y):
 		theta = -1 * theta
 	return float(round(theta,2))
 
-"""
-def calc_2point_pos(center_x,center_y,a_x,a_y,b_x,b_y):
-	a = np.array([center_x, center_y])
-	b = np.array([b_x, b_y])
-	vec = b - a
-	a = np.rad2deg(np.arctan2(vec[0], vec[1]))
-	return float(round(a,2))
-"""
-
 # log parse functions
 def log_chk_00(message_dict,chk_message):
 	linedata = message_dict["line"]
@@ -51,8 +43,6 @@ def log_chk_get_buff_26(message_dict,buffID):
 	if (linedata[0] == "26"):
 		if (linedata[2] == buffID):
 			return True
-
-	return False
 
 	return False
 

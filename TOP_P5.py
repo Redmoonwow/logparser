@@ -103,7 +103,7 @@ class top_p5:
 		return
 	
 	def init(self):
-		self.__PT_Data.to_csv(r"E:\works\80.repos\splatool\dumps\top_p5_dump" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y%m%d%H%M%S") + ".csv" )
+		self.__PT_Data.to_csv(r"E:\works\80.repos\splatool\dumps\top_p5_dump" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f") + ".csv" )
 		self.__PT_Data = pandas.DataFrame()
 		self.__PT_Data["Dynamis"] = 0
 		self.__PT_Data["1BMARKER"] = 0
@@ -305,8 +305,136 @@ class top_p5:
 					#### TODO : splatoon 要求
 					self.state_sigma += 1
 			if (self.state_sigma == 3):
-				# 塔場所解析
-				a = 1
+				# 塔場所解析 TODO: 一旦ログどり
+				disp_df = self.__PT_Data[self.__PT_Data["MINE"] == 1]
+				disp_df = disp_df.reset_index(drop=False)
+				disp_df = disp_df.iloc[0]
+				splatool_util.chatprint("------------------------------")
+				splatool_util.chatprint("# 塔:")
+				if ( "Middle" == disp_df["line"]):
+					if ( "Circle" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左〇")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    〇        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" ×            ×    ")
+							splatool_util.chatprint("     ×    ×       ")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右〇")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" ×            〇    ")
+							splatool_util.chatprint("     ×    ×       ")
+					if ( "Cross" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左×")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     〇    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" ×            ×    ")
+							splatool_util.chatprint("     ×    ×       ")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右×")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" 〇            ×    ")
+							splatool_util.chatprint("     ×    ×       ")
+					if ( "Triangle" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左△")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" 〇            ×    ")
+							splatool_util.chatprint("     ×    ×       ")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右△")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" ×           ×    ")
+							splatool_util.chatprint("     ×    〇       ")
+					if ( "square" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左□")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" ×           ×    ")
+							splatool_util.chatprint("     〇    ×       ")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右□")
+							splatool_util.chatprint("       ミドル        ")
+							splatool_util.chatprint("     ×    ×        ")
+							splatool_util.chatprint("                        ")
+							splatool_util.chatprint(" ×           〇    ")
+							splatool_util.chatprint("     ×    ×       ")
+				if ( "Far" == disp_df["line"]):
+					if ( "Circle" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左〇")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           〇")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           ×")
+							splatool_util.chatprint("       ×       ×")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右〇")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           ×")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           ×")
+							splatool_util.chatprint("       ×       〇")
+					if ( "Cross" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左×")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           〇")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           ×")
+							splatool_util.chatprint("       ×       ×")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右×")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           ×")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           ×")
+							splatool_util.chatprint("       〇       ×")
+					if ( "Triangle" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左△")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           ×")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    〇           ×")
+							splatool_util.chatprint("       ×       ×")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右△")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           ×")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           ×")
+							splatool_util.chatprint("       ×      〇")
+					if ( "square" == disp_df["PlayStation"]):
+						if ( "LEFT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("左□")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           ×")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           ×")
+							splatool_util.chatprint("       〇      ×")
+						if ( "RIGHT" == disp_df["PlayStation_LR"]):
+							splatool_util.chatprint("右□")
+							splatool_util.chatprint("         ファー  ")
+							splatool_util.chatprint("           ×")
+							splatool_util.chatprint("")
+							splatool_util.chatprint("    ×           〇")
+							splatool_util.chatprint("       ×      ×")
+				splatool_util.chatprint("------------------------------")
+				self.state_sigma += 1
 			
 		return
 	
