@@ -14,7 +14,7 @@ import splatool_util
 # config
 
 # テストモード
-fg_test_mode = True
+fg_test_mode = False
 
 
 fg_PT_setup_done = False
@@ -110,24 +110,35 @@ MARKERLIST = {
 
 Gimmick_class_00 = TOP_P5.top_p5()
 
+def updataPT_array():
+	if(g.combatants_df.empty):
+		return
+	for index, row in g.PT_array.iterrows():
+		if((True == g.combatants_df[g.combatants_df["ID"] == row["ID"]].empty)):
+			continue
+		g.PT_array.loc[index,"x"] = g.combatants_df[g.combatants_df["ID"] == row["ID"],"PosX"]
+		g.PT_array.loc[index,"y"] = g.combatants_df[g.combatants_df["ID"] == row["ID"],"PosY"]
+		g.PT_array.loc[index,"z"] = g.combatants_df[g.combatants_df["ID"] == row["ID"],"PosZ"]
+	return
+
 def dump_function(message_dict):
 	if (False == g.fg_combat):
 		return
 	if (0 == Gimmick_class_00.state_sigma):
 		return
-	#if (splatool_util.log_chk_combatant_entity_03(message_dict,"","15724")):
-		#print(message_dict["rawLine"])
-
 
 def Gimmick_branch(message_dict):
 	global Gimmick_class_00
 	dump_function(message_dict)
+
+	updataPT_array()
+
 	#TOP P5
 	if(splatool_util.log_chk_00(message_dict,"ガガ……ガガガガ……この力は、いったい……！？")):
-		Gimmick_class_00.start(g.g.PT_array)
+		Gimmick_class_00.start(g.PT_array)
 		return
 	if(Gimmick_class_00.is_start == True):
-		Gimmick_class_00.update_df(g.g.PT_array)
+		Gimmick_class_00.update_df(g.PT_array)
 		Gimmick_class_00.log_chk(message_dict)
 	return
 
@@ -159,7 +170,7 @@ def func_ChangePrimaryPlayer(message_dict):
 
 def func_ChangeZone(message_dict):
 	global fg_PT_setup_done
-	g.ZoneID = message_dict["g.ZoneID"]
+	g.ZoneID = message_dict["zoneID"]
 	json_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\json\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f") + "_" + message_dict["zoneName"] + "_ChangeZone_data.json","w",encoding="utf-8")
 	json_fd.write(json.dumps(message_dict, indent=4))
 	json_fd.close()
@@ -190,6 +201,7 @@ def func_LogLine(message_dict):
 	global fg_PT_setup_done
 	global MARKERLIST
 	linedata = message_dict["line"]
+	func_dammy_getCombatants(message_dict)
 	if (	(249 <= int(linedata[0]))	and \
 			(260 > int(linedata[0]))	):
 		return
@@ -239,7 +251,7 @@ def func_LogLine(message_dict):
 					print("-----戦闘終了-----")
 			return
 		case 38:
-			if((True == g.PT_array[g.PT_array["ID"] == linedata[2]].empty) or (fg_PT_setup_done == False)):
+			if((True == g.PT_array[g.PT_array["ID"] == linedata[2]].empty)):
 				return
 			else:
 				ok = 1
@@ -249,7 +261,7 @@ def func_LogLine(message_dict):
 			g.PT_array.loc[g.PT_array["ID"] == linedata[2],"z"] = linedata[13]
 			return
 		case 39:
-			if((True == g.PT_array[g.PT_array["ID"] == linedata[2]].empty) or (fg_PT_setup_done == False)):
+			if((True == g.PT_array[g.PT_array["ID"] == linedata[2]].empty)):
 				return
 			else:
 				ok = 1
@@ -296,9 +308,6 @@ def func_LogLine(message_dict):
 
 			g.PT_array.loc[g.PT_array["ID"] == linedata[4],"HEADMARKER"] = [MARKERLIST[int(linedata[3])]]
 
-	func_dammy_getCombatants(message_dict)
-
-
 		
 	#### ここにたどり着くログはギミック処理分岐でつかうためギミック処理分岐にまわす
 
@@ -330,6 +339,7 @@ def func_getCombatants(message_dict):
 		combatants_fd_name = "E:\\works\\1.projects\\svn\\logparser\\logparser\\combatants\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d") + "_specificCombatants.csv"
 	combatants_fd = open(combatants_fd_name,"a")
 	g.combatants_df = pandas.DataFrame.from_dict(message_dict["combatants"])
+	g.combatants_df = g.combatants_df.fillna(0)
 	nowtime = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f")
 	for buf in message_dict["combatants"]:
 		buf_str = str(buf).replace("{","")
@@ -340,6 +350,8 @@ def func_getCombatants(message_dict):
 		buf_str = nowtime + "," + buf_str
 		buf_str = str(buf_str).replace("ID:","")
 		buf_str = str(buf_str).replace(" ","")
+		if "PartyType" not in buf.keys():
+			buf_str = str(buf_str).replace("None",",None")
 		combatants_fd.write(buf_str + "\n")
 	combatants_fd.close()
 	return
@@ -352,8 +364,6 @@ def func_dammy_getCombatants(message_dict):
 	if (False == fg_test_mode):
 		return
 	
-
-
 	# 時間確認
 	# logline
 	logline_time = str(message_dict["line"][1])
@@ -445,7 +455,7 @@ def damy_main():
 	dammy_combatants_fd = open(test_combatants_filename,"r")
 	log_p = open(r"E:\\logs\\Network_26801_20230308.log",encoding = "utf-8")
 	pchg_data = open(r"E:\\works\\1.projects\\svn\\logparser\\logparser\\json\\20230308124533517425_ChangePrimaryPlayer_data.json")
-	PTchg_data = open(r"E:\\works\\98.tmp\\20230301095402_PartyChanged_data.json")
+	PTchg_data = open(r"E:\\works\\1.projects\\svn\\logparser\\logparser\\json\\20230308143245569649_PartyChanged_data.json")
 	func_ChangePrimaryPlayer(json.load(pchg_data))
 	func_PartyChanged(json.load(PTchg_data))
 	for log_rawdata in log_p:
