@@ -9,9 +9,9 @@ def damy_main():
 		log_dict = { "rawLine":log_rawdata,"line":log_array }
 		linedata = log_dict["line"]
 		
-		if (	(249 <= int(linedata[0]))	and \
-				(260 > int(linedata[0]))	):
-			print(log_dict["rawLine"],end="")
+		#if (	(249 <= int(linedata[0]))	and \
+		#		(260 > int(linedata[0]))	):
+			#print(log_dict["rawLine"],end="")
 			
 		if ("00" == linedata[0]):
 			chatID = linedata[2]
@@ -25,7 +25,7 @@ def damy_main():
 				continue
 			if(splatool_util.log_chk_00(log_dict,"この力の増幅は、リミッターカットでは説明不能……。 ヒトの不可解な強さと関係が……？")):
 				P5_str = True
-				print("")
+				#print("")
 				continue
 			if(splatool_util.log_chk_00(log_dict,"アナタはアルファであり、ワタシはオメガである。 これは最初であり、最後の検証……記録……開始……。")):
 				P5_str = False
@@ -39,20 +39,10 @@ def damy_main():
 
 		if (False == P5_str):
 			continue
-		"""
-		if (linedata[0] == "00" and "オメガ" in linedata[3]):
+		
+		if (linedata[0] == "03" and "ライトアーム" in linedata[3]):
 			print(log_dict["rawLine"],end="")
 
-		if (linedata[0] == "21" and "オメガ" in linedata[3]):
-			print(log_dict["rawLine"],end="")
-		if(splatool_util.log_chk_get_buff_26(log_dict,"D63") and False == once):
-			print(log_dict["rawLine"],end="")
-			once = True
-		if(splatool_util.log_chk_get_buff_26(log_dict,"D64") and False == once):
-			print(log_dict["rawLine"],end="")
-			once = True
-			"""
-		
 
 if __name__ == "__main__":
 	damy_main()

@@ -3,23 +3,29 @@ import pandas
 import datetime
 import splatool_util
 import math
+import splatool_global as g
+import json
+import time
+import random
+from decimal import Decimal, ROUND_HALF_UP
+from numba import jit
 
-
-
-# シグマ オメガMの出現場所
-#03|2023-03-01T23:41:01.6360000+09:00|4001249A|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||100.00|80.00|0.00|0.00|2bbe6e7b71706db5				A
-#03|2023-03-05T21:26:25.5610000+09:00|40021BCC|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||114.14|85.86|0.00|0.79|64db1a9c1e19bf45				2
-#03|2023-03-01T23:55:45.1760000+09:00|40013399|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||120.00|100.00|0.00|-1.57|a2e5d3c00f745f4b			B
-#03|2023-03-01T22:23:50.2690000+09:00|4000DF85|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||114.14|114.14|0.00|-2.36|ecf554cfc480bcb9			2
-#03|2023-03-02T23:00:20.2130000+09:00|4000A667|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||100.00|120.00|0.00|3.14|cf5224a3a2a45e14			C
-#03|2023-03-01T23:54:15.6880000+09:00|40013255|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||85.86|114.14|0.00|2.36|4a5871419a83fd85				3
-#03|2023-03-05T22:18:53.6300000+09:00|40015DB2|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||80.00|100.00|0.00|1.57|c18c9d6823a0132d				D
-#03|2023-03-05T21:26:25.5610000+09:00|40021BCC|オメガ|00|5A|0000|00||7695|15724|10380000|10380000|10000|10000|||85.86|85.86|0.00|0.79|64db1a9c1e19bf45				4
+SIGMA_OMEGA_ARM_POS = {
+	"marker":	["A",	"1",	"B",	"2",	"C",	"3",	"D",	"4"],
+	"x":		[100,	107,	110,	107,	100,	93,		90,		93]	,
+	"y":		[90,	93,		100,	107,	110,	107,	100,	93]
+}
 
 SIGMA_OMEGA_M_POS = {
-	"marker":	["A","1","B","2","C","3","D","4"],
-	"x":		[100.00,114.14,120.00,114.14,100.00,85.86,80.00,85.86],
-	"y":		[80.00,85.86,100.00,114.14,120.00,114.14,100.00,85.86]
+	"marker":	["A",		"1",	"B",	"2",	"C",	"3",	"D",	"4"],
+	"x":		[100.00,	114.14,	120.00,	114.14,	100.00,	85.86,	80.00,	85.86],
+	"y":		[80.00,		85.86,	100.00,	114.14,	120.00,	114.14,	100.00,	85.86]
+}
+
+SIGMA_OMEGA_M_MARKER = {
+	"marker":	["A",	"1",	"B",	"2",	"C",	"3",	"D",	"4"],
+	"MARK1":	["2",	"C",	"3",	"D",	"4",	"A",	"1",	"B"],
+	"MARK2":	["3",	"D",	"4",	"A",	"1",	"B",	"2",	"C"]
 }
 
 SIGMA_OMEGA_M_POS_MARKERS = {
@@ -40,26 +46,30 @@ PLAYSTATION_PRIO = {
 	"square":3
 }
 
-
 class top_p5:
-	__PT_Data = pandas.DataFrame()
-	__SIGMA_OMEGA_M_POS = pandas.DataFrame()
-	world_cnt = 0
-	line_cnt = 0
-	playstation_cnt = 0
-	tmp_cnt = 0
-	is_start = False
-	state_delta = 0
-	state_sigma = 0
-	state_omega = 0
+	__PT_Data				= pandas.DataFrame()
+	__SIGMA_OMEGA_M_POS		= pandas.DataFrame()
+	__SIGMA_OMEGA_ARM_POS	= pandas.DataFrame()
+	__SIGMA_OMEGA_M_POS		= pandas.DataFrame()
+	world_cnt				= 0
+	line_cnt				= 0
+	playstation_cnt			= 0
+	tmp_cnt					= 0
+	tmp_data				= 0
+	is_start				= False
+	state_delta				= 0
+	state_sigma				= 0
+	state_omega				= 0
 
-	sigma_omegaM_marker_pos = ""
-	fg_sigma_once = False
-	my_marker = ""
-
+	sigma_omegaM_marker_pos	= ""
+	fg_sigma_once			= False
+	my_marker				= ""
+	
 	def __init__(self):
 		self.__PT_Data = pandas.DataFrame()
-		self.__SIGMA_OMEGA_M_POS = pandas.DataFrame(SIGMA_OMEGA_M_POS)
+		self.__SIGMA_OMEGA_ARM_POS = pandas.DataFrame(SIGMA_OMEGA_ARM_POS)
+		self.__SIGMA_OMEGA_M_MARKER = pandas.DataFrame(SIGMA_OMEGA_M_MARKER)
+		self.__SIGMA_OMEGA_M_POS  = pandas.DataFrame(SIGMA_OMEGA_M_POS)
 		self.__PT_Data["Dynamis"] = 0
 		self.__PT_Data["1BMARKER"] = 0
 		self.__PT_Data["1BMARKER_prio"] = 0
@@ -70,6 +80,8 @@ class top_p5:
 		self.__PT_Data["PlayStation_LR"] = ""
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
+		self.__PT_Data["PRIO_OMEGA1"] = 0
+		self.__PT_Data["PRIO_OMEGA2"] = 0
 		self.world_cnt = 0
 		self.line_cnt = 0
 		self.is_start = False
@@ -81,10 +93,10 @@ class top_p5:
 		self.tmp_cnt = 0
 		self.my_marker = ""
 		return
-	
+	@jit
 	def update_df(self, PT_array):
 		self.__PT_Data.update(PT_array)
-
+	@jit
 	def start(self,PT_array:pandas.DataFrame):
 		self.__PT_Data = PT_array.copy()
 		self.__PT_Data["Dynamis"] = 0
@@ -95,13 +107,16 @@ class top_p5:
 		self.__PT_Data["PlayStation_prio"] = ""
 		self.__PT_Data["PlayStation_deg"] = ""
 		self.__PT_Data["PlayStation_LR"] = ""
+		self.__PT_Data["PlayStation_tower"] = 0
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
+		self.__PT_Data["PRIO_OMEGA1"] = 0
+		self.__PT_Data["PRIO_OMEGA2"] = 0
 		self.tmp_cnt = 0
 		self.is_start = True
 		self.my_marker = ""
 		return
-	
+	@jit
 	def init(self):
 		self.__PT_Data.to_csv(r"E:\works\80.repos\splatool\dumps\top_p5_dump" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f") + ".csv" )
 		self.__PT_Data = pandas.DataFrame()
@@ -113,8 +128,11 @@ class top_p5:
 		self.__PT_Data["PlayStation_prio"] = ""
 		self.__PT_Data["PlayStation_deg"] = ""
 		self.__PT_Data["PlayStation_LR"] = ""
+		self.__PT_Data["PlayStation_tower"] = 0
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
+		self.__PT_Data["PRIO_OMEGA1"] = 0
+		self.__PT_Data["PRIO_OMEGA2"] = 0
 		self.world_cnt = 0
 		self.line_cnt = 0
 		self.is_start = False
@@ -126,7 +144,7 @@ class top_p5:
 		self.tmp_cnt = 0
 		self.my_marker = ""
 		return
-	
+	@jit
 	def interval_init(self):
 		self.__PT_Data["1BMARKER"] = 0
 		self.__PT_Data["1BMARKER_prio"] = 0
@@ -135,8 +153,13 @@ class top_p5:
 		self.__PT_Data["PlayStation_prio"] = ""
 		self.__PT_Data["PlayStation_deg"] = 0
 		self.__PT_Data["PlayStation_LR"] = ""
+		self.__PT_Data["PlayStation_tower"] = 0
 		self.__PT_Data["world"] = ""
 		self.__PT_Data["line"] = ""
+		self.__PT_Data["PRIO_OMEGA1"] = 0
+		self.__PT_Data["PRIO_OMEGA2"] = 0
+		self.__PT_Data = self.__PT_Data.sort_values("PRIO")
+		self.__PT_Data = self.__PT_Data.reset_index(drop=True)
 		self.world_cnt = 0
 		self.line_cnt = 0
 		self.state_delta = 0
@@ -146,29 +169,46 @@ class top_p5:
 		self.fg_sigma_once = False
 		self.my_marker = ""
 		return
-	
+	@jit
 	def log_chk(self,message_dict):
-		global SIGMA_OMEGA_M_POS_MARKERS
-		#print(str(message_dict["rawLine"]).replace("\n",""))
 		linedata = message_dict["line"]
-		# デュナミスバフ管理
-		if(splatool_util.log_chk_get_buff_26(message_dict,"D74")):
+		nowtime = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f")
+		# デュナミスバフ管理 #オメガ時はロジック内で加算処理を行うのでnop
+		if((splatool_util.log_chk_get_buff_26(message_dict,"D74")) and (self.state_omega == 0)):
 			self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"Dynamis"] += 1
 
 		if(splatool_util.log_chk_00(message_dict,"この力の増幅は、リミッターカットでは説明不能……。 ヒトの不可解な強さと関係が……？")):
 			self.interval_init()
 			self.state_sigma = 1
 
-		# シグマ中常に確認
-		if (self.state_sigma >= 1): 
-			# オメガMの場所確認
-			if(splatool_util.log_chk_combatant_entity_03(message_dict,"","15724")):
-				omegaM_pos_df = self.__SIGMA_OMEGA_M_POS.loc[(self.__SIGMA_OMEGA_M_POS["x"] == float(linedata[17])) & (self.__SIGMA_OMEGA_M_POS["y"] == float(linedata[18]))]
-				omegaM_pos_df.reset_index(drop=True,inplace=True)
-				self.sigma_omegaM_marker_pos = str(omegaM_pos_df["marker"][0])
+		if(splatool_util.log_chk_00(message_dict,"仮説……ヒトのリミットブレイク現象が、 生命に備わった機能でないのだとしたら……。")):
+			self.interval_init()
+			self.state_omega = 1 
 
+		# logic分岐
+		if (self.state_delta >= 1):
+			self.delta_logic(message_dict)
+
+		if (self.state_sigma >= 1):
+			self.sigma_logic(message_dict)
+
+		if (self.state_omega >= 1):
+			self.omega_logic(message_dict)
+
+		return
+	@jit
+	def delta_logic(self,message_dict):
+		linedata = message_dict["line"]
+
+		self.state_delta = 0
+		return
+	@jit
+	def sigma_logic(self,message_dict):
+		global SIGMA_OMEGA_M_POS_MARKERS
+		linedata = message_dict["line"]
+		nowtime = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f")
 		if (self.state_sigma == 1): # Display PRIORITY
-			
+			# 初期デバフ取得
 			if(splatool_util.log_chk_get_buff_26(message_dict,"D72")):
 				self.world_cnt += 1
 				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"world"] = "Near"
@@ -182,27 +222,47 @@ class top_p5:
 				self.world_cnt += 1
 				self.__PT_Data.loc[:,"line"] = "Far"
 
+			# オメガMの場所確認
+			if (linedata[0] == "35" and "ライトアーム" in linedata[3]):
+				df:pandas.DataFrame = g.combatants_df[g.combatants_df["Name"] == linedata[3]]
+				df = df.sort_values("ID")
+				df = df.reset_index(drop=True)
+
+				df1 = self.__SIGMA_OMEGA_ARM_POS.loc[(self.__SIGMA_OMEGA_ARM_POS["x"] == float(Decimal(str(df["PosX"][1])).quantize(Decimal('1'), rounding=ROUND_HALF_UP))) & \
+						(self.__SIGMA_OMEGA_ARM_POS["y"] == float(Decimal(str(df["PosY"][1])).quantize(Decimal('1'), rounding=ROUND_HALF_UP)))]
+				df2 = self.__SIGMA_OMEGA_ARM_POS.loc[(self.__SIGMA_OMEGA_ARM_POS["x"] == float(Decimal(str(df["PosX"][2])).quantize(Decimal('1'), rounding=ROUND_HALF_UP))) & \
+						(self.__SIGMA_OMEGA_ARM_POS["y"] == float(Decimal(str(df["PosY"][2])).quantize(Decimal('1'), rounding=ROUND_HALF_UP)))]
+				df = pandas.concat([df1,df2])
+				df.reset_index(drop=True,inplace=True)
+				df1 = self.__SIGMA_OMEGA_M_MARKER[(self.__SIGMA_OMEGA_M_MARKER["MARK1"] == df["marker"][0]) & (self.__SIGMA_OMEGA_M_MARKER["MARK2"] == df["marker"][1])]
+				df2 = self.__SIGMA_OMEGA_M_MARKER[(self.__SIGMA_OMEGA_M_MARKER["MARK2"] == df["marker"][0]) & (self.__SIGMA_OMEGA_M_MARKER["MARK2"] == df["marker"][1])]
+				df3 = self.__SIGMA_OMEGA_M_MARKER[(self.__SIGMA_OMEGA_M_MARKER["MARK1"] == df["marker"][1]) & (self.__SIGMA_OMEGA_M_MARKER["MARK2"] == df["marker"][0])]
+				df4 = self.__SIGMA_OMEGA_M_MARKER[(self.__SIGMA_OMEGA_M_MARKER["MARK2"] == df["marker"][1]) & (self.__SIGMA_OMEGA_M_MARKER["MARK2"] == df["marker"][0])]
+				
+				df = pandas.concat([df1,df2,df3,df4])
+				df.reset_index(drop=True,inplace=True)
+				self.sigma_omegaM_marker_pos = str(df["marker"][0])
+
 			if ("27" == linedata[0]):
 				self.playstation_cnt += 1
 				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[2],"PlayStation_ID"] = linedata[6]
 
-			if(self.world_cnt >= 2 and self.playstation_cnt >= 8):
+			if((self.world_cnt >= 2) and (self.playstation_cnt >= 8) and ("" != self.sigma_omegaM_marker_pos)):
 				# playstation解析
 				self.__PT_Data = self.__PT_Data.sort_values("PlayStation_ID")
 				self.__PT_Data = self.__PT_Data.reset_index(drop=True)
-				self.__PT_Data.loc[0,"PlayStation"] = "square"
-				self.__PT_Data.loc[1,"PlayStation"] = "square"
-				self.__PT_Data.loc[2,"PlayStation"] = "Cross"
-				self.__PT_Data.loc[3,"PlayStation"] = "Cross"
-				self.__PT_Data.loc[4,"PlayStation"] = "Circle"
-				self.__PT_Data.loc[5,"PlayStation"] = "Circle"
-				self.__PT_Data.loc[6,"PlayStation"] = "Triangle"
-				self.__PT_Data.loc[7,"PlayStation"] = "Triangle"
+				self.__PT_Data.loc[0,"PlayStation"] = "Circle"
+				self.__PT_Data.loc[1,"PlayStation"] = "Circle"
+				self.__PT_Data.loc[2,"PlayStation"] = "Triangle"
+				self.__PT_Data.loc[3,"PlayStation"] = "Triangle"
+				self.__PT_Data.loc[4,"PlayStation"] = "square"
+				self.__PT_Data.loc[5,"PlayStation"] = "square"
+				self.__PT_Data.loc[6,"PlayStation"] = "Cross"
+				self.__PT_Data.loc[7,"PlayStation"] = "Cross"
 				for index, row in self.__PT_Data.iterrows():
 					self.__PT_Data.loc[index,"PlayStation_prio"] = PLAYSTATION_PRIO[self.__PT_Data["PlayStation"][index]]
 				self.__PT_Data = self.__PT_Data.sort_values("PRIO")
 				self.__PT_Data = self.__PT_Data.reset_index(drop=True)
-
 
 				# 優先度表示
 				pri_df = self.__PT_Data[self.__PT_Data["world"] != "Near"]
@@ -211,7 +271,7 @@ class top_p5:
 				pri_df = pri_df.reset_index(drop=True)
 				splatool_util.chatprint("------------------------------")
 				splatool_util.chatprint("SIGMA:")
-				splatool_util.chatprint("# OMEGA M IS " + self.sigma_omegaM_marker_pos)
+				splatool_util.chatprint("# OMEGA M IS " + "\" " + self.sigma_omegaM_marker_pos + " \"")
 				splatool_util.chatprint("# PRIORITY")
 				disnumkey =""
 				for index, row in pri_df.iterrows():
@@ -225,13 +285,17 @@ class top_p5:
 						splatool_util.ExecuteCommand("/mk attack <1>")
 				splatool_util.chatprint("NUMKEY: " + disnumkey)
 				self.state_sigma += 1
+				return
 		if (self.state_sigma == 2): #座標データから次の動きを推測
 			if ("27" == linedata[0]):
+				if(False == self.__PT_Data.loc[self.__PT_Data["PlayStation_ID"] == linedata[6]].empty):
+					return
 				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[2],"1BMARKER"] = 1
 				self.tmp_cnt += 1
 
-				if (7 <=  self.tmp_cnt):
+				if (6 <=  self.tmp_cnt):
 					# この時点の座標から左右を確認する
+					g.combatants_df.to_csv("E:\\works\\1.projects\\svn\\logparser\\logparser\\combatants\\" + nowtime + "_sigma01.csv")
 					sigma_omegaM_pos = self.__SIGMA_OMEGA_M_POS[self.__SIGMA_OMEGA_M_POS["marker"] == self.sigma_omegaM_marker_pos]
 					sigma_omegaM_pos = sigma_omegaM_pos.reset_index(drop=True)
 					sigma_omegaM_pos_x = float(sigma_omegaM_pos["x"][0])
@@ -285,156 +349,356 @@ class top_p5:
 					markers_data = SIGMA_OMEGA_M_POS_MARKERS[self.sigma_omegaM_marker_pos]
 					splatool_util.chatprint("")
 					splatool_util.chatprint("# Wave Cannon Pos")
-					match int(disp_df["1BMARKER_prio"]):
-						case 0:
-							self.my_marker = markers_data[0]
-						case 1:
-							self.my_marker = markers_data[1]
-						case 2:
-							if (0 == disp_df["1BMARKER"]):
-								self.my_marker = markers_data[2]
-							else:
-								self.my_marker = markers_data[3]
-						case 3:
-							if (0 == disp_df["1BMARKER"]):
-								self.my_marker = markers_data[4]
-							else:
-								self.my_marker = markers_data[5]
+					if (int(disp_df["1BMARKER_prio"]) == 0):
+						self.my_marker = markers_data[0]
+					elif (int(disp_df["1BMARKER_prio"]) == 1):
+						self.my_marker = markers_data[1]
+					elif (int(disp_df["1BMARKER_prio"]) == 2):
+						if (0 == disp_df["1BMARKER"]):
+							self.my_marker = markers_data[2]
+						else:
+							self.my_marker = markers_data[3]
+					elif (int(disp_df["1BMARKER_prio"]) == 3):
+						if (0 == disp_df["1BMARKER"]):
+							self.my_marker = markers_data[4]
+						else:
+							self.my_marker = markers_data[5]
 
 					splatool_util.chatprint("POS: " + self.my_marker)
 					#### TODO : splatoon 要求
 					self.state_sigma += 1
-			if (self.state_sigma == 3):
-				# 塔場所解析 TODO: 一旦ログどり
-				disp_df = self.__PT_Data[self.__PT_Data["MINE"] == 1]
-				disp_df = disp_df.reset_index(drop=False)
-				disp_df = disp_df.iloc[0]
-				splatool_util.chatprint("------------------------------")
-				splatool_util.chatprint("# 塔:")
-				if ( "Middle" == disp_df["line"]):
-					if ( "Circle" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左〇")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    〇        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" ×            ×    ")
-							splatool_util.chatprint("     ×    ×       ")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右〇")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" ×            〇    ")
-							splatool_util.chatprint("     ×    ×       ")
-					if ( "Cross" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左×")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     〇    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" ×            ×    ")
-							splatool_util.chatprint("     ×    ×       ")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右×")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" 〇            ×    ")
-							splatool_util.chatprint("     ×    ×       ")
-					if ( "Triangle" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左△")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" 〇            ×    ")
-							splatool_util.chatprint("     ×    ×       ")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右△")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" ×           ×    ")
-							splatool_util.chatprint("     ×    〇       ")
-					if ( "square" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左□")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" ×           ×    ")
-							splatool_util.chatprint("     〇    ×       ")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右□")
-							splatool_util.chatprint("       ミドル        ")
-							splatool_util.chatprint("     ×    ×        ")
-							splatool_util.chatprint("                        ")
-							splatool_util.chatprint(" ×           〇    ")
-							splatool_util.chatprint("     ×    ×       ")
-				if ( "Far" == disp_df["line"]):
-					if ( "Circle" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左〇")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           〇")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           ×")
-							splatool_util.chatprint("       ×       ×")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右〇")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           ×")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           ×")
-							splatool_util.chatprint("       ×       〇")
-					if ( "Cross" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左×")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           〇")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           ×")
-							splatool_util.chatprint("       ×       ×")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右×")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           ×")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           ×")
-							splatool_util.chatprint("       〇       ×")
-					if ( "Triangle" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左△")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           ×")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    〇           ×")
-							splatool_util.chatprint("       ×       ×")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右△")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           ×")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           ×")
-							splatool_util.chatprint("       ×      〇")
-					if ( "square" == disp_df["PlayStation"]):
-						if ( "LEFT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("左□")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           ×")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           ×")
-							splatool_util.chatprint("       〇      ×")
-						if ( "RIGHT" == disp_df["PlayStation_LR"]):
-							splatool_util.chatprint("右□")
-							splatool_util.chatprint("         ファー  ")
-							splatool_util.chatprint("           ×")
-							splatool_util.chatprint("")
-							splatool_util.chatprint("    ×           〇")
-							splatool_util.chatprint("       ×      ×")
-				splatool_util.chatprint("------------------------------")
-				self.state_sigma += 1
-			
+		if (self.state_sigma == 3):
+			g.combatants_df.to_csv("E:\\works\\1.projects\\svn\\logparser\\logparser\\combatants\\" + nowtime + "_sigma02.csv")
+			disp_df = self.__PT_Data[self.__PT_Data["MINE"] == 1]
+			disp_df = disp_df.reset_index(drop=False)
+			disp_df = disp_df.iloc[0]
+			splatool_util.chatprint("------------------------------")
+			splatool_util.chatprint("# 塔:")
+			if ( "Middle" == disp_df["line"]):
+				if ( "Circle" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左〇")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    〇        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" ×            ×    ")
+						splatool_util.chatprint("     ×    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 5
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右〇")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" ×            〇    ")
+						splatool_util.chatprint("     ×    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 4
+
+				if ( "Cross" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左×")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     〇    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" ×            ×    ")
+						splatool_util.chatprint("     ×    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 0
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右×")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" 〇            ×    ")
+						splatool_util.chatprint("     ×    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 1
+
+				if ( "Triangle" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左△")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" 〇            ×    ")
+						splatool_util.chatprint("     ×    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 1
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右△")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" ×           ×    ")
+						splatool_util.chatprint("     ×    〇       ")
+						self.__PT_Data["PlayStation_tower"] = 3
+
+				if ( "square" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左□")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" ×           ×    ")
+						splatool_util.chatprint("     〇    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 2
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右□")
+						splatool_util.chatprint("       ミドル        ")
+						splatool_util.chatprint("     ×    ×        ")
+						splatool_util.chatprint("                        ")
+						splatool_util.chatprint(" ×           〇    ")
+						splatool_util.chatprint("     ×    ×       ")
+						self.__PT_Data["PlayStation_tower"] = 4
+
+			if ( "Far" == disp_df["line"]):
+				if ( "Circle" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左〇")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           〇")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           ×")
+						splatool_util.chatprint("       ×       ×")
+						self.__PT_Data["PlayStation_tower"] = 4
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右〇")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           ×")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           ×")
+						splatool_util.chatprint("       ×       〇")
+						self.__PT_Data["PlayStation_tower"] = 2
+
+				if ( "Cross" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左×")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           〇")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           ×")
+						splatool_util.chatprint("       ×       ×")
+						self.__PT_Data["PlayStation_tower"] = 4
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右×")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           ×")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           ×")
+						splatool_util.chatprint("       〇       ×")
+						self.__PT_Data["PlayStation_tower"] = 1
+
+				if ( "Triangle" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左△")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           ×")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    〇           ×")
+						splatool_util.chatprint("       ×       ×")
+						self.__PT_Data["PlayStation_tower"] = 0
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右△")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           ×")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           ×")
+						splatool_util.chatprint("       ×      〇")
+						self.__PT_Data["PlayStation_tower"] = 2
+
+				if ( "square" == disp_df["PlayStation"]):
+					if ( "LEFT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("左□")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           ×")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           ×")
+						splatool_util.chatprint("       〇      ×")
+						self.__PT_Data["PlayStation_tower"] = 1
+
+					if ( "RIGHT" == disp_df["PlayStation_LR"]):
+						splatool_util.chatprint("右□")
+						splatool_util.chatprint("         ファー  ")
+						splatool_util.chatprint("           ×")
+						splatool_util.chatprint("")
+						splatool_util.chatprint("    ×           〇")
+						splatool_util.chatprint("       ×      ×")
+						self.__PT_Data["PlayStation_tower"] = 3
+
+			splatool_util.chatprint("------------------------------")
+			self.state_sigma += 1
+			return
+		#### 塔場所確認
+		if (self.state_sigma == 4):
+			# 塔がでてくるまで待機
+			tower_df1 = g.combatants_df[(g.combatants_df["BNpcID"] == 2013245)]
+			tower_df2 = g.combatants_df[(g.combatants_df["BNpcID"] == 2013246)]
+			tower_df = pandas.concat([tower_df1,tower_df2])
+			if (True == tower_df.empty):
+				return
+			tower_df = tower_df.sort_values("ID")
+
+			self.state_sigma += 1
+		#### ハロワ位置表示
+		if (self.state_sigma == 5):
+			self.interval_init()
+			return
 		return
-	
+	@jit
+	def omega_logic(self,message_dict):
+		linedata = message_dict["line"]
+
+		if(1 == self.state_omega):
+			if(splatool_util.log_chk_get_buff_26(message_dict,"D72")):
+				self.world_cnt += 1
+				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"world"] = "Near"
+			if(splatool_util.log_chk_get_buff_26(message_dict,"D73")):
+				self.world_cnt += 1
+				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"world"] = "Far"
+			if(splatool_util.log_chk_get_buff_26(message_dict,"BBC")):
+				self.line_cnt += 1
+				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"line"] = 1
+			if(splatool_util.log_chk_get_buff_26(message_dict,"BBD")):
+				self.line_cnt += 1
+				self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"line"] = 2
+
+			if(4 <= self.world_cnt and 4<= self.line_cnt):
+				# 検知時の優先度判定
+				## 検知者判定
+				dete_cnt = 11
+				# デュナミス2 ハロワ2持ち → 検知確定
+				pri_df = self.__PT_Data[self.__PT_Data["Dynamis"] == 2]
+				pri_df = pri_df[pri_df["line"] == 2]
+				pri_df = pri_df.reset_index(drop=True)
+				for index, row in pri_df.iterrows():
+					if (dete_cnt >= 13):
+						break
+					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA1"] = dete_cnt
+					dete_cnt += 1
+
+				# デュナミス2のみ持ち → 検知確定
+				pri_df = self.__PT_Data[self.__PT_Data["Dynamis"] == 2]
+				pri_df = pri_df[pri_df["PRIO_OMEGA1"] == 0]
+				pri_df = pri_df[pri_df["line"] != 1]
+				pri_df = pri_df.reset_index(drop=True)
+				for index, row in pri_df.iterrows():
+					if (dete_cnt >= 13):
+						break
+					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA1"] = dete_cnt
+					dete_cnt += 1
+
+				# 残りの人でハロワファーストでない人に割り振る
+				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA1"] == 0]
+				pri_df = pri_df[pri_df["line"] != 1]
+				pri_df = pri_df.reset_index(drop=True)
+				for index, row in pri_df.iterrows():
+					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA1"] = (index + 1)
+
+				# 検知でつくデュナミス付与
+				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA1"] < 9]
+				for index, row in pri_df.iterrows():
+					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"Dynamis"] += 1
+
+				# ブラスター時の優先度判定
+				## ブラスター対象者判定
+				pri_df = self.__PT_Data[self.__PT_Data["Dynamis"] == 3]
+				pri_df = pri_df.reset_index(drop=True)
+				for index, row in pri_df.iterrows():
+					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA2"] = (index + 11)
+
+				# 残りの人でハロワではない人を割り振る
+				pri_df = self.__PT_Data[self.__PT_Data["Dynamis"] == 2]
+				pri_df = pri_df[pri_df["line"] != 2]
+				pri_df = pri_df.reset_index(drop=True)
+				for index, row in pri_df.iterrows():
+					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA2"] = (index + 1)
+				
+				splatool_util.chatprint("------------------------------")
+				splatool_util.chatprint("OMEGA:")
+				splatool_util.chatprint("# PRIORITY WHEN DETECT TIME")
+				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA1"] != 0]
+				pri_df = pri_df.reset_index(drop=True)
+				disp_df = pri_df[pri_df["PRIO_OMEGA1"] > 9]
+				disnumkey = ""
+				disp_df = disp_df.reset_index(drop=True)
+				splatool_util.chatprint("## DETECTER BIND")
+				for index, row in disp_df.iterrows():
+					splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk bind <" + str(row["NUMKEY"]) + ">")
+					time.sleep(random.uniform(0.8,1.5))
+				splatool_util.chatprint("BIND NUMKEY: " + str(disnumkey))
+				splatool_util.chatprint("")
+
+				disp_df = pri_df[pri_df["PRIO_OMEGA1"] < 9]
+				disp_df = disp_df.reset_index(drop=True)
+				disnumkey = ""
+				splatool_util.chatprint("## ATTACK PRIORITY")
+				for index, row in disp_df.iterrows():
+					splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk attack <" + str(row["NUMKEY"]) + ">")
+					time.sleep(random.uniform(0.8,1.5))
+				splatool_util.chatprint("ATTACK NUMKEY: " + str(disnumkey))
+				splatool_util.chatprint("------------------------------")
+				self.state_omega += 1
+			return
+		if(2 == self.state_omega):
+			if((linedata[0] != "20") or ("検知式波動砲" not in linedata[5])):
+				return
+			
+			# 右B検知 左D安置
+			if((linedata[0] == "20") and ("7B96" == linedata[4])):
+				a = 1 # TODO
+
+			# 左D検知 右B安置
+			if((linedata[0] == "20") and ("7B97" == linedata[4])):
+				a = 1 # TODO
+
+			self.state_omega += 1
+			return
+		if(3 == self.state_omega):
+			if(((linedata[0] != "30") or ("D72" != linedata[2])) and ((linedata[0] != "30") or ("D73" != linedata[2]))):
+				return
+
+			splatool_util.chatprint("------------------------------")
+			splatool_util.chatprint("# PRIORITY WHEN BLASTER TIME")
+			pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA2"] != 0]
+			pri_df = pri_df.reset_index(drop=True)
+			disp_df = pri_df[pri_df["PRIO_OMEGA2"] > 9]
+			disnumkey = ""
+			disp_df = disp_df.reset_index(drop=True)
+			splatool_util.chatprint("## DETECTER BIND")
+			for index, row in disp_df.iterrows():
+				splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+				disnumkey = disnumkey + str(row["NUMKEY"])
+				#splatool_util.ExecuteCommand("/mk bind <" + str(row["NUMKEY"]) + ">")
+			splatool_util.chatprint("BIND NUMKEY: " + str(disnumkey))
+			splatool_util.chatprint("")
+
+			disp_df = pri_df[pri_df["PRIO_OMEGA2"] < 9]
+			disp_df = disp_df.reset_index(drop=True)
+			disnumkey = ""
+			splatool_util.chatprint("## ATTACK PRIORITY")
+			for index, row in disp_df.iterrows():
+				splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+				disnumkey = disnumkey + str(row["NUMKEY"])
+				splatool_util.ExecuteCommand("/mk attack <" + str(row["NUMKEY"]) + ">")
+				time.sleep(random.uniform(0.8,1.5))
+			splatool_util.chatprint("ATTACK NUMKEY: " + str(disnumkey))
+			splatool_util.chatprint("------------------------------")
+
+			self.state_omega += 1
+			return
+		if(4 == self.state_omega):
+			if((linedata[0] != "20") or ("7E76"  != linedata[4])):
+				return
+			# TODO: splatoon
+
+			self.interval_init()
+			self.state_delta = 0
+			return
+		return
