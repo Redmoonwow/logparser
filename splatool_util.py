@@ -10,7 +10,6 @@ import random
 import time
 import tarfile
 import bz2
-from numba import jit
 
 fg_test = False
 
@@ -20,7 +19,7 @@ def set_test():
 	global fg_test
 	fg_test = True
 	
-@jit
+
 def calc_2point_pos(center_x,center_y,a_x,a_y,b_x,b_y):
 	#角度計算開始
 	vec1=[a_x-center_x,a_y-center_y]
@@ -36,7 +35,6 @@ def calc_2point_pos(center_x,center_y,a_x,a_y,b_x,b_y):
 	return float(round(theta,2))
 
 # log parse functions
-@jit
 def log_chk_00(message_dict,chk_message):
 	linedata = message_dict["line"]
 	if (linedata[0] == "00"):
@@ -45,7 +43,6 @@ def log_chk_00(message_dict,chk_message):
 
 	return False
 
-@jit
 def log_chk_get_buff_26(message_dict,buffID):
 	linedata = message_dict["line"]
 	if (linedata[0] == "26"):
@@ -53,7 +50,7 @@ def log_chk_get_buff_26(message_dict,buffID):
 			return True
 
 	return False
-@jit
+
 def log_chk_combatant_entity_03(message_dict,npcnameid,npcid):
 	linedata = message_dict["line"]
 	if (linedata[0] == "03"):
@@ -95,18 +92,31 @@ d_qs = urllib.parse.urlencode(d)
 requests.post("http://127.0.0.1:47774?" + d_qs)
 """
 # telesto Control Function
-@jit
+
 def chatprint(string):
 	global fg_test
 	if (False == fg_test):
-		jsondata = { "version": 1, "id": 666666, "type": "PrintMessage", "payload": { "message": string } }
+		jsondata = { "version": 1, "id": 123456, "type": "PrintMessage", "payload": { "message": string } }
 		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
 	print(string)
-@jit
+
 def ExecuteCommand(string):
 	if (False == fg_test):
 		jsondata = { "version": 1, "id": 123456, "type": "ExecuteCommand", "payload": { "command": string } }
 		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
+
+def ExecuteDeleteCommand():
+	if (False == fg_test):
+		jsondata = { "version": 1, "id": 123456, "type": "Bundle", "payload": [ \
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack1>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack2>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack3>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack4>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack5>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <bind1>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <bind2>" } }]}
+		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
+	chatprint("Deleted MARKER !!")
 
 
 """
