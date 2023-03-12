@@ -8,7 +8,6 @@ import json
 import time
 import random
 from decimal import Decimal, ROUND_HALF_UP
-from numba import jit
 
 SIGMA_OMEGA_ARM_POS = {
 	"marker":	["A",	"1",	"B",	"2",	"C",	"3",	"D",	"4"],
@@ -93,10 +92,10 @@ class top_p5:
 		self.tmp_cnt = 0
 		self.my_marker = ""
 		return
-	@jit
+	
 	def update_df(self, PT_array):
 		self.__PT_Data.update(PT_array)
-	@jit
+	
 	def start(self,PT_array:pandas.DataFrame):
 		self.__PT_Data = PT_array.copy()
 		self.__PT_Data["Dynamis"] = 0
@@ -116,7 +115,7 @@ class top_p5:
 		self.is_start = True
 		self.my_marker = ""
 		return
-	@jit
+	
 	def init(self):
 		self.__PT_Data.to_csv(r"E:\works\80.repos\splatool\dumps\top_p5_dump" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f") + ".csv" )
 		self.__PT_Data = pandas.DataFrame()
@@ -144,7 +143,7 @@ class top_p5:
 		self.tmp_cnt = 0
 		self.my_marker = ""
 		return
-	@jit
+	
 	def interval_init(self):
 		self.__PT_Data["1BMARKER"] = 0
 		self.__PT_Data["1BMARKER_prio"] = 0
@@ -169,7 +168,7 @@ class top_p5:
 		self.fg_sigma_once = False
 		self.my_marker = ""
 		return
-	@jit
+	
 	def log_chk(self,message_dict):
 		linedata = message_dict["line"]
 		nowtime = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f")
@@ -196,13 +195,13 @@ class top_p5:
 			self.omega_logic(message_dict)
 
 		return
-	@jit
+	
 	def delta_logic(self,message_dict):
 		linedata = message_dict["line"]
 
 		self.state_delta = 0
 		return
-	@jit
+	
 	def sigma_logic(self,message_dict):
 		global SIGMA_OMEGA_M_POS_MARKERS
 		linedata = message_dict["line"]
@@ -547,7 +546,7 @@ class top_p5:
 			self.interval_init()
 			return
 		return
-	@jit
+	
 	def omega_logic(self,message_dict):
 		linedata = message_dict["line"]
 
