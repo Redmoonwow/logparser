@@ -241,6 +241,7 @@ class top_p5:
 					if (row["MINE"] == 1):
 						# 今だけ TODO: 試験完了後にattackマーカーの数字を記憶する
 						splatool_util.chatprint("attack is ON!!!!")
+						time.sleep(8)
 						splatool_util.ExecuteCommand("/mk attack <1>")
 				splatool_util.chatprint("NUMKEY: " + disnumkey)
 				self.state_sigma = 0

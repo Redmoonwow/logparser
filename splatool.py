@@ -170,20 +170,20 @@ def func_InCombat(message_dict):
 	if ((int(message_dict["inGameCombat"]) != g.fg_combat)):
 				g.fg_combat = int(message_dict["inGameCombat"])
 				if 1 == int(message_dict["inGameCombat"]):
-					if(False ==  fg_test_mode):
-						log_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y%m%d%H%M%S") + " try_" + str(g.ZoneID) + "_" + str(wipeout_cnt) +"_gimmick_data.log","w",encoding="utf-8")
-						wipeout_cnt += 1
-						write_buf = write_buf + ChangePrimaryPlayer_data + "\n"
-						write_buf = write_buf + ChangeZone_data + "\n"
-						if("" != PartyChanged_data):
-							log_fd.write(PartyChanged_data + "\n")
+					#if(False ==  fg_test_mode):
+					#	log_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y%m%d%H%M%S") + " try_" + str(g.ZoneID) + "_" + str(wipeout_cnt) +"_gimmick_data.log","w",encoding="utf-8")
+					#	wipeout_cnt += 1
+					#	write_buf = write_buf + ChangePrimaryPlayer_data + "\n"
+					#	write_buf = write_buf + ChangeZone_data + "\n"
+					#	if("" != PartyChanged_data):
+					#		log_fd.write(PartyChanged_data + "\n")
 					splatool_util.chatprint("-----戦闘開始-----")
 				else:
-					if(False ==  fg_test_mode):
-						if(len(write_buf) != 0):
-							log_fd.write(write_buf)
-						write_buf = ""
-						log_fd.close()
+				#	if(False ==  fg_test_mode):
+				#		if(len(write_buf) != 0):
+				#			log_fd.write(write_buf)
+				#		write_buf = ""
+				#		log_fd.close()
 					Gimmick_init()
 					splatool_util.chatprint("-----戦闘終了-----")
 	return
@@ -344,13 +344,13 @@ def main():
 	ws_cliant.connect("ws://127.0.0.1:10501/ws",)
 	ws_cliant.send('{"call":"subscribe","events":["ChangePrimaryPlayer"]}')
 	ws_cliant.send('{"call":"subscribe","events":["ChangeZone"]}')
-	ws_cliant.send('{"call":"subscribe","events":["ChangeMap"]}')
+	#ws_cliant.send('{"call":"subscribe","events":["ChangeMap"]}')
 	ws_cliant.send('{"call":"subscribe","events":["PartyChanged"]}')
 	ws_cliant.send('{"call":"subscribe","events":["LogLine"]}')
 	ws_cliant.send('{"call":"subscribe","events":["InCombat"]}')
-	ws_cliant.send('{"call":"subscribe","events":["OnlineStatusChanged"]}')
-	ws_cliant.send('{"call":"getCombatants","ids":[],"props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"rseq":"specificCombatants"}')
-	ws_cliant.send('{"rseq":"allCombatants","props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"call":"getCombatants"}')
+	#ws_cliant.send('{"call":"subscribe","events":["OnlineStatusChanged"]}')
+	#ws_cliant.send('{"call":"getCombatants","ids":[],"props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"rseq":"specificCombatants"}')
+	#ws_cliant.send('{"rseq":"allCombatants","props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"call":"getCombatants"}')
 	
 	while True:
 		rawdata = ws_cliant.recv()
@@ -374,11 +374,11 @@ def main():
 			elif (data["type"] == "InCombat"):
 				func_InCombat(data)
 				InCombat_data = rawdata
-		if((1 == g.fg_combat) and True == req_write):
-			write_buf = write_buf + rawdata + "\n"
-			if(len(write_buf) >= 1048576):
-				log_fd.write(write_buf)
-				write_buf = ""
+		#if((1 == g.fg_combat) and True == req_write):
+		#	write_buf = write_buf + rawdata + "\n"
+		#	if(len(write_buf) >= 1048576):
+		#		log_fd.write(write_buf)
+		#		write_buf = ""
 
 		req_write = True
 		
