@@ -177,19 +177,22 @@ class top_p5:
 			self.__PT_Data.loc[self.__PT_Data["ID"] == linedata[7],"Dynamis"] += 1
 
 		if(splatool_util.log_chk_00(message_dict,"この力の増幅は、リミッターカットでは説明不能……。 ヒトの不可解な強さと関係が……？")):
+			splatool_util.chatprint("sigma_logic start")
 			self.interval_init()
 			self.state_sigma = 1
 
 		if(splatool_util.log_chk_00(message_dict,"仮説……ヒトのリミットブレイク現象が、 生命に備わった機能でないのだとしたら……。")):
-			splatool_util.ExecuteDeleteCommand()
+			splatool_util.chatprint("omega_logic start")
 			self.interval_init()
 			self.state_omega = 1 
 
 		# logic分岐
 		if (self.state_delta >= 1):
+			splatool_util.chatprint("delta_logic start")
 			self.delta_logic(message_dict)
 
 		if (self.state_sigma >= 1):
+
 			self.sigma_logic(message_dict)
 
 		if (self.state_omega >= 1):
@@ -241,11 +244,16 @@ class top_p5:
 					if (row["MINE"] == 1):
 						# 今だけ TODO: 試験完了後にattackマーカーの数字を記憶する
 						splatool_util.chatprint("attack is ON!!!!")
-						time.sleep(8)
+						time.sleep(16)
 						splatool_util.ExecuteCommand("/mk attack <1>")
 				splatool_util.chatprint("NUMKEY: " + disnumkey)
-				self.state_sigma = 0
+				self.state_sigma += 1
 				return
+		elif (self.state_sigma == 2):
+			if(((linedata[0] != "30") or ("D72" != linedata[2])) and ((linedata[0] != "30") or ("D73" != linedata[2]))):
+				return
+			splatool_util.ExecuteDeleteCommand()
+			self.state_sigma = 0
 		return
 	
 	def omega_logic(self,message_dict):
@@ -315,7 +323,6 @@ class top_p5:
 				pri_df = pri_df.reset_index(drop=True)
 				for index, row in pri_df.iterrows():
 					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA2"] = (index + 1)
-				splatool_util.ExecuteDeleteCommand()
 				splatool_util.chatprint("------------------------------")
 				splatool_util.chatprint("OMEGA:")
 				splatool_util.chatprint("# PRIORITY WHEN DETECT TIME")

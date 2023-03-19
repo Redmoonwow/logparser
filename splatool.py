@@ -20,7 +20,8 @@ import splatool_util
 
 # テストモード
 fg_test_mode = False
-fg_PT_setup_done = False
+INIT_state = 0
+primary_pc_set_done = False
 fg_gimmkck_open_fd = False
 dammy_combatants_fd = 0
 test_combatants_filename = ""
@@ -143,10 +144,15 @@ def dump_function(message_dict):
 def Gimmick_branch(message_dict):
 	global Gimmick_class_00
 	
-	if (fg_PT_setup_done != True):
-		return
 	#TOP P5
+	if(splatool_util.log_chk_00(message_dict,"実装……共闘者の存在…… 戦闘行為におけるロール分担の有用性を検証します……。")):
+		splatool_util.chatprint("#### TOP_P2 start")
+		return
+	if(splatool_util.log_chk_00(message_dict,"ガガガ……ハードウェア、耐久限界を超越…… そうだとしても……強く……もっと強く……！")):
+		splatool_util.chatprint("#### TOP_P4 start")
+		return
 	if(splatool_util.log_chk_00(message_dict,"ガガ……ガガガガ……この力は、いったい……！？")):
+		splatool_util.chatprint("#### TOP_P5 start")
 		Gimmick_class_00.start(g.PT_array)
 		return
 	if(Gimmick_class_00.is_start == True):
@@ -170,38 +176,36 @@ def func_InCombat(message_dict):
 	if ((int(message_dict["inGameCombat"]) != g.fg_combat)):
 				g.fg_combat = int(message_dict["inGameCombat"])
 				if 1 == int(message_dict["inGameCombat"]):
-					#if(False ==  fg_test_mode):
-					#	log_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y%m%d%H%M%S") + " try_" + str(g.ZoneID) + "_" + str(wipeout_cnt) +"_gimmick_data.log","w",encoding="utf-8")
-					#	wipeout_cnt += 1
-					#	write_buf = write_buf + ChangePrimaryPlayer_data + "\n"
-					#	write_buf = write_buf + ChangeZone_data + "\n"
-					#	if("" != PartyChanged_data):
-					#		log_fd.write(PartyChanged_data + "\n")
+					if(False ==  fg_test_mode):
+						log_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y%m%d%H%M%S") + " try_" + str(g.ZoneID) + "_" + str(wipeout_cnt) +"_gimmick_data.log","w",encoding="utf-8")
+						wipeout_cnt += 1
+						write_buf = write_buf + ChangePrimaryPlayer_data + "\n"
+						write_buf = write_buf + ChangeZone_data + "\n"
+						if("" != PartyChanged_data):
+							log_fd.write(PartyChanged_data + "\n")
 					splatool_util.chatprint("-----戦闘開始-----")
 				else:
-				#	if(False ==  fg_test_mode):
-				#		if(len(write_buf) != 0):
-				#			log_fd.write(write_buf)
-				#		write_buf = ""
-				#		log_fd.close()
+					if(False ==  fg_test_mode):
+						if(len(write_buf) != 0):
+							log_fd.write(write_buf)
+						write_buf = ""
+						log_fd.close()
 					Gimmick_init()
 					splatool_util.chatprint("-----戦闘終了-----")
 	return
 
 def func_ChangePrimaryPlayer(message_dict):
+	global primary_pc_set_done
 	g.MY_PC.loc[0,"ID"]	= format(message_dict["charID"],"X")
 	g.MY_PC.loc[0,"name"]	= message_dict["charName"]
+	primary_pc_set_done = True
 	return
 
 def func_ChangeZone(message_dict):
-	global fg_PT_setup_done
+	global INIT_state
 	global wipeout_cnt
 	g.ZoneID = message_dict["zoneID"]
-	json_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\json\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f") + "_" + message_dict["zoneName"] + "_ChangeZone_data.json","w",encoding="utf-8")
-	json_fd.write(json.dumps(message_dict, indent=4))
-	json_fd.close()
 	wipeout_cnt = 1
-	fg_PT_setup_done = False
 	return	
 
 def func_ChangeMap(message_dict):
@@ -210,6 +214,8 @@ def func_ChangeMap(message_dict):
 	return
 
 def func_PartyChanged(message_dict):
+	global INIT_state
+	global primary_pc_set_done
 	i = 0
 	for data in message_dict["party"]:
 		g.PT_array.loc[i,"ID"] = data["id"]
@@ -220,12 +226,14 @@ def func_PartyChanged(message_dict):
 	json_fd = open("E:\\works\\1.projects\\svn\\logparser\\logparser\\json\\" + datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f") + "_PartyChanged_data.json","w",encoding="utf-8")
 	json_fd.write(json.dumps(message_dict, indent=4))
 	json_fd.close()
-	func_set_PTarray()
+	if (True == primary_pc_set_done):
+		func_set_PTarray()
+	INIT_state = 1
+	splatool_util.chatprint("-----PT RESTART-----")
 	return
 
 def func_LogLine(message_dict):
 	global fg_gimmkck_open_fd
-	global fg_PT_setup_done
 	global MARKERLIST
 	global wipeout_cnt
 	global req_write
@@ -270,7 +278,7 @@ def func_LogLine(message_dict):
 		
 	#### ここにたどり着くログはギミック処理分岐でつかうためギミック処理分岐にまわす
 	#if(False ==  fg_test_mode):
-		#print(str(message_dict["rawLine"]).replace("\n",""))
+	#	print(str(message_dict["rawLine"]).replace("\n",""))
 
 	if(g.fg_combat == 1):
 		Gimmick_branch(message_dict)
@@ -278,7 +286,7 @@ def func_LogLine(message_dict):
 	return
 
 def func_set_PTarray():
-	global fg_PT_setup_done
+	global INIT_state
 	g.PT_array.loc[g.PT_array["ID"] == str(g.MY_PC.loc[0,"ID"]),"MINE"] = 1
 	g.PT_array = g.PT_array.sort_values("PRIO")
 	g.PT_array = g.PT_array.reset_index(drop=True)
@@ -290,46 +298,7 @@ def func_set_PTarray():
 	g.PT_array.loc[5,"NUMKEY"] = "3"
 	g.PT_array.loc[6,"NUMKEY"] = "1"
 	g.PT_array.loc[7,"NUMKEY"] = "4"
-	fg_PT_setup_done = True
-
-def func_getCombatants(message_dict):
-	g.combatants_df = pandas.DataFrame.from_dict(message_dict["combatants"])
-	g.combatants_df = g.combatants_df.fillna(0)
-
-	if(0 == g.fg_combat):
-		return
-
-	nowtime = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime(r"%Y%m%d%H%M%S%f")
-	g.combatants_df.to_csv("E:\\works\\1.projects\\svn\\logparser\\logparser\\combatants\\combatants_tmp\\" + nowtime + "_specificCombatants.csv")
-	return
-
-def func_dammy_getCombatants(message_dict):
-	global test_combatants_filename
-	global fg_test_mode
-	global dammy_combatants_df
-	once = False
-	if (False == fg_test_mode):
-		return
-	
-	# 時間確認
-	# logline
-	logline_time = str(message_dict["line"][1])
-	logline_time = logline_time.replace("+09:00","")
-	logline_time = logline_time.replace("-","")
-	logline_time = logline_time.replace(":","")
-	logline_time = logline_time.replace(".","")
-	logline_time = logline_time.replace("T","")
-	logline_time = logline_time[:20]
-
-	df:pandas.DataFrame = dammy_combatants_df[dammy_combatants_df["time"] <= str(int(logline_time) + 300000)]
-	df = df.sort_values("time",ascending=False)
-	df = df.reset_index(drop=True)
-
-	if(True == df.empty):
-		return
-
-	g.combatants_df = pandas.read_csv(df["path"][0])
-	return
+	INIT_state += 1
 
 def main():
 	global ChangePrimaryPlayer_data
@@ -339,21 +308,69 @@ def main():
 	global log_fd
 	global write_buf
 	global req_write
-	#websocket.enableTrace(True)
-	ws_cliant = websocket.WebSocket()
-	ws_cliant.connect("ws://127.0.0.1:10501/ws",)
-	ws_cliant.send('{"call":"subscribe","events":["ChangePrimaryPlayer"]}')
-	ws_cliant.send('{"call":"subscribe","events":["ChangeZone"]}')
-	#ws_cliant.send('{"call":"subscribe","events":["ChangeMap"]}')
-	ws_cliant.send('{"call":"subscribe","events":["PartyChanged"]}')
-	ws_cliant.send('{"call":"subscribe","events":["LogLine"]}')
-	ws_cliant.send('{"call":"subscribe","events":["InCombat"]}')
-	#ws_cliant.send('{"call":"subscribe","events":["OnlineStatusChanged"]}')
-	#ws_cliant.send('{"call":"getCombatants","ids":[],"props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"rseq":"specificCombatants"}')
-	#ws_cliant.send('{"rseq":"allCombatants","props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"call":"getCombatants"}')
-	
+	global fg_test_mode
+	global INIT_state
+	once = False
+	dsp_cnt = 0
+	if (False == fg_test_mode):
+		#websocket.enableTrace(True)
+		ws_cliant = websocket.WebSocket()
+		ws_cliant.connect("ws://127.0.0.1:10501/ws",)
+		ws_cliant.send('{"call":"subscribe","events":["ChangePrimaryPlayer"]}')
+		ws_cliant.send('{"call":"subscribe","events":["ChangeZone"]}')
+		#ws_cliant.send('{"call":"subscribe","events":["ChangeMap"]}')
+		ws_cliant.send('{"call":"subscribe","events":["PartyChanged"]}')
+		ws_cliant.send('{"call":"subscribe","events":["LogLine"]}')
+		ws_cliant.send('{"call":"subscribe","events":["InCombat"]}')
+		#ws_cliant.send('{"call":"subscribe","events":["OnlineStatusChanged"]}')
+		#ws_cliant.send('{"call":"getCombatants","ids":[],"props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"rseq":"specificCombatants"}')
+		#ws_cliant.send('{"rseq":"allCombatants","props":["CurrentWorldID","WorldID","WorldName","BNpcID","BNpcNameID","PartyType","ID","OwnerID","Type","type","Job","Level","Name","CurrentHP","MaxHP","CurrentMP","MaxMP","PosX","PosY","PosZ","Heading","TargetID","ModelStatus","IsTargetable","TransformationId","WeaponId"],"call":"getCombatants"}')
+		#ws_cliant.send('{"rseq":"allCombatants","props":["BNpcID","BNpcNameID","ID","Type","Name","PosX","PosY","PosZ","TransformationId","WeaponId"],"call":"getCombatants"}')
+	else:
+		if (False == once):
+			splatool_util.set_test()
+			fg_test_mode = True
+			log_p = open(r"E:\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\20230315224623 try_1122_2_gimmick_data.log",encoding = "utf-8")
+			once = True
+
 	while True:
-		rawdata = ws_cliant.recv()
+		if (False == fg_test_mode):
+			rawdata = ws_cliant.recv()
+		else:
+			rawdata = log_p.readline()
+			if (rawdata == ""):
+				return
+			
+		# PTセットアップ確認
+		if (3 > INIT_state):
+			if((1 <= INIT_state) and (True == primary_pc_set_done)):
+				func_set_PTarray()
+			else:
+				if(0 == dsp_cnt):
+					splatool_util.chaterror("[ERROR] func_set_PTarray()")
+					dsp_cnt = 200
+				else:
+					dsp_cnt -= 1
+			if(2 <= INIT_state):
+				dsp_cnt = 0
+				df_bool = int(g.PT_array["MINE"].sum())
+				if(1 < df_bool):
+					if(0 == dsp_cnt):
+						splatool_util.chaterror("[ERROR] MINE is not unique")
+						dsp_cnt = 200
+					else:
+						dsp_cnt -= 1
+				else:
+					INIT_state += 1
+			if(3 <= INIT_state):
+				splatool_util.chatprint("[INFO ] PT set done")
+		else:
+			df_bool = int(g.PT_array["MINE"].sum())
+			if(1 < df_bool):
+				splatool_util.chaterror("[ERROR] MINE is not unique RE_INIT START")
+				INIT_state = 1
+
+
 		data:dict = json.loads(rawdata)
 		if "combatants" in data.keys():
 			#func_getCombatants(data)
@@ -374,48 +391,14 @@ def main():
 			elif (data["type"] == "InCombat"):
 				func_InCombat(data)
 				InCombat_data = rawdata
-		#if((1 == g.fg_combat) and True == req_write):
-		#	write_buf = write_buf + rawdata + "\n"
-		#	if(len(write_buf) >= 1048576):
-		#		log_fd.write(write_buf)
-		#		write_buf = ""
+		if((1 == g.fg_combat) and True == req_write):
+			write_buf = write_buf + rawdata + "\n"
+			if(len(write_buf) >= 1048576):
+				log_fd.write(write_buf)
+				write_buf = ""
 
 		req_write = True
-		
-
-
-def damy_main():
-	global fg_test_mode
-	global dammy_combatants_df
-	splatool_util.set_test()
-	#globdata = glob.glob(r"E:\\works\\1.projects\\svn\\logparser\\logparser\\combatants\\combatants_tmp\\*")
-	#dammy_combatants_df = pandas.DataFrame(globdata,columns=["path"])
-	#for index, row in dammy_combatants_df.iterrows():
-	#	dammy_combatants_df.loc[index,"time"] = (str(os.path.basename(row["path"])).split("_")[0])
-	log_p = open(r"E:\\works\\98.tmp\\Network_26800_20230305.log",encoding = "utf-8")
-	pchg_data = open(r"E:\\works\\98.tmp\\ChangePrimaryPlayer_data.json")
-	PTchg_data = open(r"E:\\works\\98.tmp\\PartyChanged_data.json")
-	combat_data = open(r"E:\\works\\98.tmp\\combat_start.json")
-	func_ChangePrimaryPlayer(json.load(pchg_data))
-	func_PartyChanged(json.load(PTchg_data))
-	func_InCombat(json.load(combat_data))
-	
-
-	for log_rawdata in log_p:
-		log_array = log_rawdata.split("|")
-		log_dict = { "rawLine":log_rawdata,"line":log_array }
-		func_LogLine(log_dict)
-
-def damy_main_netw():
-	global fg_test_mode
-	splatool_util.set_test()
-	log_p = open(r"E:\\logs\\Network_26801_20230308_1.log",encoding = "utf-8")
-	for log_rawdata in log_p:
-		func_LogLine(log_rawdata)
 
 if __name__ == "__main__":
-	if (True == fg_test_mode):
-		damy_main()
-	else:
-		main()
+	main()
 

@@ -100,6 +100,13 @@ def chatprint(string):
 		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
 	print(string)
 
+def chaterror(string):
+	global fg_test
+	if (False == fg_test):
+		jsondata = { "version": 1, "id": 123456, "type": "PrintError", "payload": { "message": string } }
+		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
+	print(string)
+
 def ExecuteCommand(string):
 	if (False == fg_test):
 		jsondata = { "version": 1, "id": 123456, "type": "ExecuteCommand", "payload": { "command": string } }
@@ -117,21 +124,3 @@ def ExecuteDeleteCommand():
 			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <bind2>" } }]}
 		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
 	chatprint("Deleted MARKER !!")
-
-
-"""
-ExecuteCommand("/mk attack <1>")
-time.sleep(random.uniform(0.5,1))
-ExecuteCommand("/mk attack <2>")
-time.sleep(random.uniform(0.5,1))
-ExecuteCommand("/mk attack <3>")
-time.sleep(random.uniform(0.5,1))
-ExecuteCommand("/mk attack <4>")
-time.sleep(random.uniform(0.5,1))
-ExecuteCommand("/mk attack <5>")
-time.sleep(random.uniform(0.5,1))
-ExecuteCommand("/mk bind <6>")
-time.sleep(random.uniform(0.5,1))
-ExecuteCommand("/mk bind <7>")
-time.sleep(random.uniform(0.5,1))
-"""
