@@ -7,7 +7,11 @@ import splatool_global as g
 import json
 import time
 import random
+import pyautogui
 from decimal import Decimal, ROUND_HALF_UP
+
+
+try_pat = 2
 
 SIGMA_OMEGA_ARM_POS = {
 	"marker":	["A",	"1",	"B",	"2",	"C",	"3",	"D",	"4"],
@@ -231,22 +235,22 @@ class top_p5:
 				pri_df = pri_df[pri_df["world"] != "Far"]
 				pri_df = pri_df[pri_df["Dynamis"] == 1]
 				pri_df = pri_df.reset_index(drop=True)
-				splatool_util.chatprint("------------------------------")
-				splatool_util.chatprint("SIGMA:")
-				splatool_util.chatprint("# OMEGA M IS " + "\" " + self.sigma_omegaM_marker_pos + " \"")
-				splatool_util.chatprint("# PRIORITY")
+				print("------------------------------")
+				print("SIGMA:")
+				print("# OMEGA M IS " + "\" " + self.sigma_omegaM_marker_pos + " \"")
+				print("# PRIORITY")
 				disnumkey =""
 				for index, row in pri_df.iterrows():
-					splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+					print(str(index + 1) + ": " + row["name"])
 					#pyautogui.press(str(row["NUMKEY"]))
 					disnumkey = disnumkey + str(row["NUMKEY"]).replace("num","")
 					
 					if (row["MINE"] == 1):
 						# 今だけ TODO: 試験完了後にattackマーカーの数字を記憶する
-						splatool_util.chatprint("attack is ON!!!!")
+						print("attack is ON!!!!")
 						time.sleep(16)
 						splatool_util.ExecuteCommand("/mk attack <1>")
-				splatool_util.chatprint("NUMKEY: " + disnumkey)
+				print("NUMKEY: " + disnumkey)
 				self.state_sigma += 1
 				return
 		elif (self.state_sigma == 2):
@@ -257,6 +261,7 @@ class top_p5:
 		return
 	
 	def omega_logic(self,message_dict):
+		global try_pat
 		linedata = message_dict["line"]
 
 		if(1 == self.state_omega):
@@ -323,67 +328,141 @@ class top_p5:
 				pri_df = pri_df.reset_index(drop=True)
 				for index, row in pri_df.iterrows():
 					self.__PT_Data.loc[self.__PT_Data["ID"] == row["ID"],"PRIO_OMEGA2"] = (index + 1)
-				splatool_util.chatprint("------------------------------")
-				splatool_util.chatprint("OMEGA:")
-				splatool_util.chatprint("# PRIORITY WHEN DETECT TIME")
+				print("------------------------------")
+				print("OMEGA:")
+				print("# PRIORITY WHEN DETECT TIME")
 				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA1"] != 0]
 				pri_df = pri_df.reset_index(drop=True)
 				disp_df = pri_df[pri_df["PRIO_OMEGA1"] > 9]
 				disnumkey = ""
 				disp_df = disp_df.reset_index(drop=True)
-				splatool_util.chatprint("## DETECTER BIND")
+				print("## DETECTER STOP")
 				for index, row in disp_df.iterrows():
-					splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+					print(str(index + 1) + ": " + row["name"])
 					disnumkey = disnumkey + str(row["NUMKEY"])
-					splatool_util.ExecuteCommand("/mk bind <" + str(row["NUMKEY"]) + ">")
+					splatool_util.ExecuteCommand("/mk stop <" + str(row["NUMKEY"]) + ">")
 					time.sleep(random.uniform(0.8,1.5))
-				splatool_util.chatprint("BIND NUMKEY: " + str(disnumkey))
-				splatool_util.chatprint("")
+				print("STOP NUMKEY: " + str(disnumkey))
+				print("")
 
 				disp_df = pri_df[pri_df["PRIO_OMEGA1"] < 9]
 				disp_df = disp_df.reset_index(drop=True)
 				disnumkey = ""
-				splatool_util.chatprint("## ATTACK PRIORITY")
+				print("## ATTACK PRIORITY")
 				for index, row in disp_df.iterrows():
-					splatool_util.chatprint(str(index + 1) + ": " + row["name"])
+					print(str(index + 1) + ": " + row["name"])
 					disnumkey = disnumkey + str(row["NUMKEY"])
 					splatool_util.ExecuteCommand("/mk attack <" + str(row["NUMKEY"]) + ">")
 					time.sleep(random.uniform(0.8,1.5))
-				splatool_util.chatprint("ATTACK NUMKEY: " + str(disnumkey))
-				splatool_util.chatprint("------------------------------")
+				print("ATTACK NUMKEY: " + str(disnumkey))
+				print("------------------------------")
 				self.state_omega += 1
 			return
 		if(2 == self.state_omega):
 			if(((linedata[0] != "30") or ("D72" != linedata[2])) and ((linedata[0] != "30") or ("D73" != linedata[2]))):
 				return
 			splatool_util.ExecuteDeleteCommand()
-			splatool_util.chatprint("------------------------------")
-			splatool_util.chatprint("# PRIORITY WHEN BLASTER TIME")
-			pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA2"] != 0]
-			pri_df = pri_df.reset_index(drop=True)
-			disp_df = pri_df[pri_df["PRIO_OMEGA2"] > 9]
-			disnumkey = ""
-			disp_df = disp_df.reset_index(drop=True)
-			splatool_util.chatprint("## DETECTER BIND")
-			for index, row in disp_df.iterrows():
-				splatool_util.chatprint(str(index + 1) + ": " + row["name"])
-				disnumkey = disnumkey + str(row["NUMKEY"])
-				#splatool_util.ExecuteCommand("/mk bind <" + str(row["NUMKEY"]) + ">")
-			splatool_util.chatprint("BIND NUMKEY: " + str(disnumkey))
-			splatool_util.chatprint("")
+			time.sleep(2)
+			print("------------------------------")
+			print("# PRIORITY WHEN BLASTER TIME")
 
-			disp_df = pri_df[pri_df["PRIO_OMEGA2"] < 9]
-			disp_df = disp_df.reset_index(drop=True)
-			disnumkey = ""
-			splatool_util.chatprint("## ATTACK PRIORITY")
-			for index, row in disp_df.iterrows():
-				splatool_util.chatprint(str(index + 1) + ": " + row["name"])
-				disnumkey = disnumkey + str(row["NUMKEY"])
-				splatool_util.ExecuteCommand("/mk attack <" + str(row["NUMKEY"]) + ">")
-				time.sleep(random.uniform(0.8,1.5))
-			splatool_util.chatprint("ATTACK NUMKEY: " + str(disnumkey))
-			splatool_util.chatprint("------------------------------")
+			if (try_pat == 1):
+				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA2"] != 0]
+				pri_df = pri_df.reset_index(drop=True)
+				disp_df = pri_df[pri_df["PRIO_OMEGA2"] > 9]
+				disnumkey = ""
+				disp_df = disp_df.reset_index(drop=True)
 
+				print("## DETECTER STOP")
+				for index, row in disp_df.iterrows():
+					print(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk stop <" + str(row["NUMKEY"]) + ">")
+					print("/mk stop <" + str(row["NUMKEY"]) + ">")
+					time.sleep(random.uniform(0.4,0.8))
+			
+				print("STOP NUMKEY: " + str(disnumkey))
+				print("")
+				disp_df = pri_df[pri_df["PRIO_OMEGA2"] < 9]
+				disp_df = disp_df.reset_index(drop=True)
+				disnumkey = ""
+				print("## ATTACK PRIORITY")
+				time.sleep(1)
+				for index, row in disp_df.iterrows():
+					print(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk attack <" + str(row["NUMKEY"]) + ">")
+					print("/mk attack <" + str(row["NUMKEY"]) + ">")
+					time.sleep(random.uniform(0.4,0.8))
+				print("ATTACK NUMKEY: " + str(disnumkey))
+				print("------------------------------")
+			elif (try_pat == 2):
+				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA2"] != 0]
+
+				disp_df = pri_df[pri_df["PRIO_OMEGA2"] < 9]
+				disp_df = disp_df.reset_index(drop=True)
+				disnumkey = ""
+
+				print("## ATTACK PRIORITY")
+				for index, row in disp_df.iterrows():
+					print(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk attack" " <" + str(row["NUMKEY"]) + ">")
+					print("/mk attack" + " <" + str(row["NUMKEY"]) + ">")
+					time.sleep(0.5)
+				print("ATTACK NUMKEY: " + str(disnumkey))
+				print("")
+
+				pri_df = pri_df.reset_index(drop=True)
+				disp_df = pri_df[pri_df["PRIO_OMEGA2"] > 9]
+				disnumkey = ""
+				disp_df = disp_df.reset_index(drop=True)
+
+				print("## DETECTER STOP")
+				for index, row in disp_df.iterrows():
+					print(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk stop <" + str(row["NUMKEY"]) + ">")
+					print("/mk stop" + " <" + str(row["NUMKEY"]) + ">")
+					time.sleep(0.5)
+				print("STOP NUMKEY: " + str(disnumkey))
+				print("------------------------------")
+
+				self.state_omega += 1
+			if (try_pat == 3):
+				pri_df = self.__PT_Data[self.__PT_Data["PRIO_OMEGA2"] != 0]
+				pri_df = pri_df.reset_index(drop=True)
+				disp_df = pri_df[pri_df["PRIO_OMEGA2"] > 9]
+				disnumkey = ""
+				disp_df = disp_df.reset_index(drop=True)
+
+				print("## DETECTER STOP")
+				for index, row in disp_df.iterrows():
+					print(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					splatool_util.ExecuteCommand("/mk stop" + str(index + 1) + " <" + str(row["NUMKEY"]) + ">")
+					print("/mk stop" + str(index + 1) + " <" + str(row["NUMKEY"]) + ">")
+					time.sleep(1)
+
+				print("STOP NUMKEY: " + str(disnumkey))
+				print("")
+				disp_df = pri_df[pri_df["PRIO_OMEGA2"] < 9]
+				disp_df = disp_df.reset_index(drop=True)
+				disnumkey = ""
+				print("## ATTACK PRIORITY")
+				time.sleep(1)
+				for index, row in disp_df.iterrows():
+					print(str(index + 1) + ": " + row["name"])
+					disnumkey = disnumkey + str(row["NUMKEY"])
+					pyautogui.press("num" + str(row["NUMKEY"]))
+					time.sleep(random.uniform(0.4,0.8))
+
+				print("ATTACK NUMKEY: " + str(disnumkey))
+				print("------------------------------")
+		if(3 == self.state_omega):
+			if(((linedata[0] != "30") or ("D72" != linedata[2])) and ((linedata[0] != "30") or ("D73" != linedata[2]))):
+				return
+			splatool_util.ExecuteDeleteCommand()
 			self.state_omega = 0
 			return
 		return

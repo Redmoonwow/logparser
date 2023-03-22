@@ -10,6 +10,7 @@ import tarfile
 import shutil
 import os
 import glob
+import obswebsocket as obs
 
 
 # ギミッククラス
@@ -30,6 +31,7 @@ wipeout_cnt = 1
 log_fd = 0
 write_buf = ""
 req_write = True
+obs_ws = 0
 
 ChangePrimaryPlayer_data=""
 ChangeZone_data=""
@@ -145,8 +147,11 @@ def Gimmick_branch(message_dict):
 	global Gimmick_class_00
 	
 	#TOP P5
-	if(splatool_util.log_chk_00(message_dict,"実装……共闘者の存在…… 戦闘行為におけるロール分担の有用性を検証します……。")):
+	if(splatool_util.log_chk_00(message_dict,"ワタシはオメガであり、アルファである……。 弱きヒトの特徴を実装し、真なる強きを求めましょう。")):
 		splatool_util.chatprint("#### TOP_P2 start")
+		return
+	if(splatool_util.log_chk_00(message_dict,"判定……ヒトの姿や行動を模倣することは、 戦闘能力の向上に、寄与しないと判断します……。")):
+		splatool_util.chatprint("#### TOP_P3 start")
 		return
 	if(splatool_util.log_chk_00(message_dict,"ガガガ……ハードウェア、耐久限界を超越…… そうだとしても……強く……もっと強く……！")):
 		splatool_util.chatprint("#### TOP_P4 start")
@@ -173,6 +178,7 @@ def func_InCombat(message_dict):
 	global PartyChanged_data
 	global ChangePrimaryPlayer_data
 	global write_buf
+	global obs_ws
 	if ((int(message_dict["inGameCombat"]) != g.fg_combat)):
 				g.fg_combat = int(message_dict["inGameCombat"])
 				if 1 == int(message_dict["inGameCombat"]):
@@ -310,8 +316,10 @@ def main():
 	global req_write
 	global fg_test_mode
 	global INIT_state
+	global obs_ws
 	once = False
 	dsp_cnt = 0
+
 	if (False == fg_test_mode):
 		#websocket.enableTrace(True)
 		ws_cliant = websocket.WebSocket()
@@ -330,7 +338,7 @@ def main():
 		if (False == once):
 			splatool_util.set_test()
 			fg_test_mode = True
-			log_p = open(r"E:\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\20230315224623 try_1122_2_gimmick_data.log",encoding = "utf-8")
+			log_p = open(r"E:\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\20230319233707 try_1122_7_gimmick_data.log",encoding = "utf-8")
 			once = True
 
 	while True:

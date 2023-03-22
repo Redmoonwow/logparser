@@ -120,7 +120,8 @@ def ExecuteDeleteCommand():
 			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack3>" } },
 			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack4>" } },
 			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <attack5>" } },
-			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <bind1>" } },
-			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <bind2>" } }]}
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <stop1>" } },
+			{ "id": 123456, "type": "ExecuteCommand", "payload": { "command": "/mk off <stop2>" } }]}
 		requests.post("http://localhost:51323/",data= json.dumps(jsondata))
 	chatprint("Deleted MARKER !!")
+	
