@@ -409,7 +409,7 @@ class top_p5:
 					disnumkey = disnumkey + str(row["NUMKEY"])
 					splatool_util.ExecuteCommand("/mk attack" " <" + str(row["NUMKEY"]) + ">")
 					print("/mk attack" + " <" + str(row["NUMKEY"]) + ">")
-					time.sleep(0.5)
+					time.sleep(0.3)
 				print("ATTACK NUMKEY: " + str(disnumkey))
 				print("")
 
@@ -424,7 +424,7 @@ class top_p5:
 					disnumkey = disnumkey + str(row["NUMKEY"])
 					splatool_util.ExecuteCommand("/mk stop <" + str(row["NUMKEY"]) + ">")
 					print("/mk stop" + " <" + str(row["NUMKEY"]) + ">")
-					time.sleep(0.5)
+					time.sleep(0.3)
 				print("STOP NUMKEY: " + str(disnumkey))
 				print("------------------------------")
 
@@ -459,10 +459,12 @@ class top_p5:
 
 				print("ATTACK NUMKEY: " + str(disnumkey))
 				print("------------------------------")
+			return
 		if(3 == self.state_omega):
-			if(((linedata[0] != "30") or ("D72" != linedata[2])) and ((linedata[0] != "30") or ("D73" != linedata[2]))):
+			if(((linedata[0] != "30") or ("BBD" != linedata[2]))):
 				return
 			splatool_util.ExecuteDeleteCommand()
+			print("test")
 			self.state_omega = 0
 			return
 		return

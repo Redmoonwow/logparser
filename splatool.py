@@ -10,7 +10,6 @@ import tarfile
 import shutil
 import os
 import glob
-import obswebsocket as obs
 
 
 # ギミッククラス
@@ -338,7 +337,7 @@ def main():
 		if (False == once):
 			splatool_util.set_test()
 			fg_test_mode = True
-			log_p = open(r"E:\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\20230319233707 try_1122_7_gimmick_data.log",encoding = "utf-8")
+			log_p = open(r"E:\works\\1.projects\\svn\\logparser\\logparser\\gimmick_file\\20230327232155 try_1122_6_gimmick_data.log",encoding = "utf-8")
 			once = True
 
 	while True:
